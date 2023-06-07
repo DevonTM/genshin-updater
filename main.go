@@ -54,10 +54,10 @@ func main() {
 	}
 
 	// Extract the required values
-	curVer := data.Data.Game.Diffs[0].Version
+	oldVer := data.Data.Game.Diffs[0].Version
 	newVer := data.Data.Game.Latest.Version
 
-	fmt.Printf("Genshin Impact Patch Downloader\nupdate version : %s to %s\n\n", curVer, newVer)
+	fmt.Printf("Genshin Impact Patch Downloader\nupdate version : %s to %s\n\n", oldVer, newVer)
 	fmt.Println("1. Game Update")
 	fmt.Println("2. Chinese Voice")
 	fmt.Println("3. English Voice")
@@ -91,7 +91,7 @@ func main() {
 	}
 
 	fmt.Println("\ndownloading...")
-	downloadCommand := fmt.Sprintf("aria2c.exe --conf-path=config.txt --checksum=md5=%s %s", md5, path)
+	downloadCommand := fmt.Sprintf("aria2c.exe --conf-path=aria2.conf --checksum=md5=%s %s", md5, path)
 	cmd := exec.Command("cmd", "/C", downloadCommand)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

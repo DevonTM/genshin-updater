@@ -16,9 +16,16 @@ all: build
 build:
 	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags "-s -w" ./main.go
 
+run: build
+	./$(BINARY_NAME)
+
+dist: build
+	mkdir -p release/genshin-patch
+	mv $(BINARY_NAME) release/
+	cp aria2.conf release/
+	cp LICENSE release/
+
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
-
-run: build
-	./$(BINARY_NAME)
+	rm -rf release
