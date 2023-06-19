@@ -3,103 +3,134 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 )
 
-type GameData struct {
+const (
+	KB = 1024
+	MB = 1024 * KB
+	GB = 1024 * MB
+
+	URL = "https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/resource?channel_id=1&key=gcStgarh&launcher_id=10&sub_channel_id=0"
+)
+
+type GenshinData struct {
 	Data struct {
 		Game struct {
 			Latest struct {
 				Version string `json:"version"`
-			} `json:"latest"`
+			}
 			Diffs []struct {
-				Version     string `json:"version"`
-				Path        string `json:"path"`
-				MD5         string `json:"md5"`
-				VoicePacks  []VoicePack `json:"voice_packs"`
+				Name    string `json:"name"`
+				Version string `json:"version"`
+				Path    string `json:"path"`
+				Size    string `json:"package_size"`
+				Hash    string `json:"md5"`
+				Voice   []struct {
+					Language string `json:"language"`
+					Name     string `json:"name"`
+					Path     string `json:"path"`
+					Size     string `json:"package_size"`
+					Hash     string `json:"md5"`
+				} `json:"voice_packs"`
 			} `json:"diffs"`
 		} `json:"game"`
 	} `json:"data"`
 }
 
-type VoicePack struct {
-	Path string `json:"path"`
-	MD5  string `json:"md5"`
-}
-
 func main() {
-	url := "https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/resource?channel_id=1&key=gcStgarh&launcher_id=10&sub_channel_id=0"
-
-	// Fetch the JSON data
-	response, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
+	// create http client with 10s timeout
+	client := &http.Client{
+		Timeout: 10e9,
 	}
 
-	// Parse the JSON data
-	var data GameData
-	err = json.Unmarshal(body, &data)
+	// create http request
+	req, err := http.NewRequest("GET", URL, http.NoBody)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
-	// Extract the required values
+	// send http request
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// parse http response
+	var data GenshinData
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// extract the required values
 	oldVer := data.Data.Game.Diffs[0].Version
 	newVer := data.Data.Game.Latest.Version
+	gameData := data.Data.Game.Diffs[0]
 
-	fmt.Printf("Genshin Impact Patch Downloader\nupdate version : %s to %s\n\n", oldVer, newVer)
-	fmt.Println("1. Game Update")
-	fmt.Println("2. Chinese Voice")
-	fmt.Println("3. English Voice")
-	fmt.Println("4. Japanese Voice")
-	fmt.Println("5. Korean Voice")
+	// print available updates
+	fmt.Printf("Genshin Impact Patch Downloader\nUpdate Version : %s to %s\n\n", oldVer, newVer)
+	fmt.Printf("1. game update (%s)\n", convertSize(gameData.Size))
+	for i, voiceData := range gameData.Voice {
+		fmt.Printf("%d. %s voice (%s)\n", i+2, voiceData.Language, convertSize(voiceData.Size))
+	}
 
-	// Prompt user to select the option
-	var option int
-	validOption := false
-	for !validOption {
-		fmt.Print("select an option (1-5): ")
-		_, err = fmt.Scanln(&option)
-		if err != nil || option < 1 || option > 5 {
-			fmt.Println("invalid option selected")
+	var name, path, hash string
+
+	// ask user to select update
+	for {
+		var choice int
+		fmt.Print("\nSelect Update : ")
+		fmt.Scanln(&choice)
+		if choice == 1 {
+			name = gameData.Name
+			path = gameData.Path
+			hash = gameData.Hash
+		} else if choice > 1 && choice < len(gameData.Voice)+2 {
+			name = gameData.Voice[choice-2].Name
+			path = gameData.Voice[choice-2].Path
+			hash = gameData.Voice[choice-2].Hash
+		} else {
+			fmt.Println("Wrong Choice")
 			continue
 		}
-		
-		validOption = true
+		break
 	}
 
-	// Download the selected file
-	path := ""
-	md5 := ""
-	if option == 1 {
-		path = data.Data.Game.Diffs[0].Path
-		md5 = data.Data.Game.Diffs[0].MD5
-	} else if option >= 2 && option <= 5 {
-		index := option - 2
-		path = data.Data.Game.Diffs[0].VoicePacks[index].Path
-		md5 = data.Data.Game.Diffs[0].VoicePacks[index].MD5
-	}
-
-	fmt.Println("\ndownloading...")
-	downloadCommand := fmt.Sprintf("aria2c.exe --conf-path=aria2.conf --checksum=md5=%s %s", md5, path)
-	cmd := exec.Command("cmd", "/C", downloadCommand)
+	// download update file
+	fmt.Println("Downloading:", name)
+	command := fmt.Sprintf("aria2c.exe --conf-path=aria2.conf --checksum=md5=%s %s", hash, path)
+	cmd := exec.Command("cmd", "/C", command)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Print("\npress enter to exit...")
 	fmt.Scanln()
+}
+
+// convert size from string bytes to human readable format
+func convertSize(s string) string {
+	size, _ := strconv.ParseInt(s, 10, 64)
+	switch {
+	case size > GB:
+		return fmt.Sprintf("%.2f GB", float64(size)/GB)
+	case size > MB:
+		return fmt.Sprintf("%d MB", size/MB)
+	case size > KB:
+		return fmt.Sprintf("%d KB", size/KB)
+	default:
+		return fmt.Sprintf("%d B", size)
+	}
 }
