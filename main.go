@@ -3,110 +3,118 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 )
 
-const (
-	KB = 1024
-	MB = 1024 * KB
-	GB = 1024 * MB
-
-	URL = "https://sdk-os-static.mihoyo.com/hk4e_global/mdk/launcher/api/resource?channel_id=1&key=gcStgarh&launcher_id=10&sub_channel_id=0"
-)
-
 type GenshinData struct {
 	Data struct {
-		Game struct {
-			Latest struct {
-				Version string `json:"version"`
-			}
-			Diffs []struct {
-				Name    string `json:"name"`
-				Version string `json:"version"`
-				Path    string `json:"path"`
-				Size    string `json:"package_size"`
-				Hash    string `json:"md5"`
-				Voice   []struct {
-					Language string `json:"language"`
-					Name     string `json:"name"`
-					Path     string `json:"path"`
-					Size     string `json:"package_size"`
-					Hash     string `json:"md5"`
-				} `json:"voice_packs"`
-			} `json:"diffs"`
-		} `json:"game"`
+		Game    *gameData `json:"game"`
+		PreGame *gameData `json:"pre_download_game"`
 	} `json:"data"`
 }
 
-func main() {
-	// create http client with 10s timeout
-	client := &http.Client{
-		Timeout: 10e9,
-	}
+type gameData struct {
+	Latest struct {
+		Ver string `json:"version"`
+	} `json:"latest"`
+	Diff []struct {
+		Name  string `json:"name"`
+		Ver   string `json:"version"`
+		Path  string `json:"path"`
+		Size  string `json:"package_size"`
+		Hash  string `json:"md5"`
+		Voice []struct {
+			Lang string `json:"language"`
+			Name string `json:"name"`
+			Path string `json:"path"`
+			Size string `json:"package_size"`
+			Hash string `json:"md5"`
+		} `json:"voice_packs"`
+	} `json:"diffs"`
+}
 
-	// create http request
+var URL = "https://hk4e-launcher-static.hoyoverse.com/hk4e_global/mdk/launcher/api/resource?channel_id=1&key=gcStgarh&launcher_id=10&sub_channel_id=0"
+
+func main() {
+	fmt.Printf("Genshin Impact Patch Downloader\n")
+
+	client := &http.Client{Timeout: 10e9}
 	req, err := http.NewRequest("GET", URL, http.NoBody)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
-
-	// send http request
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	// parse http response
-	var data GenshinData
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
-	// extract the required values
-	oldVer := data.Data.Game.Diffs[0].Version
-	newVer := data.Data.Game.Latest.Version
-	gameData := data.Data.Game.Diffs[0]
+	var data *GenshinData
+	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		log.Fatal(err)
+	}
+	resp.Body.Close()
 
-	// print available updates
-	fmt.Printf("Genshin Impact Patch Downloader\nUpdate Version : %s to %s\n\n", oldVer, newVer)
-	fmt.Printf("1. game update (%s)\n", convertSize(gameData.Size))
-	for i, voiceData := range gameData.Voice {
-		fmt.Printf("%d. %s voice (%s)\n", i+2, voiceData.Language, convertSize(voiceData.Size))
+	g := data.Data.Game
+	p := data.Data.PreGame
+	gvL := len(g.Diff[0].Voice)
+	pvL := 0
+
+	var preDL bool
+	if p != nil {
+		pvL = len(p.Diff[0].Voice)
+		preDL = true
+	}
+
+	fmt.Printf("\nUpdate Version : %s to %s\n", g.Diff[0].Ver, g.Latest.Ver)
+	fmt.Printf("1. game update (%s)\n", convertSize(g.Diff[0].Size))
+	for i, v := range g.Diff[0].Voice {
+		fmt.Printf("%d. %s voice (%s)\n", i+2, v.Lang, convertSize(v.Size))
+	}
+
+	if preDL {
+		fmt.Printf("\nPre Update Version : %s to %s\n", p.Diff[0].Ver, p.Latest.Ver)
+		fmt.Printf("%d. game update (%s)\n", gvL+2, convertSize(p.Diff[0].Size))
+		for i, v := range p.Diff[0].Voice {
+			fmt.Printf("%d. %s voice (%s)\n", gvL+i+3, v.Lang, convertSize(v.Size))
+		}
 	}
 
 	var name, path, hash string
-
-	// ask user to select update
 	for {
 		var choice int
 		fmt.Print("\nSelect Update : ")
 		fmt.Scanln(&choice)
-		if choice == 1 {
-			name = gameData.Name
-			path = gameData.Path
-			hash = gameData.Hash
-		} else if choice > 1 && choice < len(gameData.Voice)+2 {
-			name = gameData.Voice[choice-2].Name
-			path = gameData.Voice[choice-2].Path
-			hash = gameData.Voice[choice-2].Hash
-		} else {
-			fmt.Println("Wrong Choice")
+		if choice < 1 || choice > gvL+pvL+2 {
+			fmt.Println("wrong choice")
 			continue
+		} else if choice == 1 {
+			name = g.Diff[0].Name
+			path = g.Diff[0].Path
+			hash = g.Diff[0].Hash
+		} else if choice < gvL+2 {
+			name = g.Diff[0].Voice[choice-2].Name
+			path = g.Diff[0].Voice[choice-2].Path
+			hash = g.Diff[0].Voice[choice-2].Hash
+		} else if preDL && choice == gvL+2 {
+			name = p.Diff[0].Name
+			path = p.Diff[0].Path
+			hash = p.Diff[0].Hash
+		} else if preDL && choice < gvL+pvL+3 {
+			name = p.Diff[0].Voice[choice-gvL-3].Name
+			path = p.Diff[0].Voice[choice-gvL-3].Path
+			hash = p.Diff[0].Voice[choice-gvL-3].Hash
 		}
 		break
 	}
 
-	// download update file
-	fmt.Println("Downloading:", name)
-	command := fmt.Sprintf("aria2c.exe --conf-path=aria2.conf --checksum=md5=%s %s", hash, path)
+	fmt.Println("\nDownloading :", name)
+	command := fmt.Sprintf("aria2c --conf-path=aria2.conf --checksum=md5=%s -- %s", hash, path)
 	cmd := exec.Command("cmd", "/C", command)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -120,7 +128,12 @@ func main() {
 	fmt.Scanln()
 }
 
-// convert size from string bytes to human readable format
+const (
+	KB = 1024
+	MB = 1024 * KB
+	GB = 1024 * MB
+)
+
 func convertSize(s string) string {
 	size, _ := strconv.ParseInt(s, 10, 64)
 	switch {
