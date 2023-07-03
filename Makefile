@@ -1,20 +1,14 @@
-# Go parameters
 GOCMD = go
 GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
-BINARY_NAME = genshin-updater
-
-# Check the operating system and set the binary name accordingly
-ifeq ($(OS),Windows_NT)
-	BINARY_NAME := $(BINARY_NAME).exe
-endif
+BINARY_NAME = genshin-updater.exe
 
 .PHONY: all build clean test
 
 all: build
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags "-s -w" ./main.go
+	$(GOBUILD) -o $(BINARY_NAME) -v -trimpath -ldflags "-s -w" main.go
 
 run: build
 	./$(BINARY_NAME)
