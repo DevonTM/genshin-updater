@@ -3,7 +3,7 @@ GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
 BINARY_NAME = genshin-updater.exe
 
-.PHONY: all build clean test
+.PHONY: all build run dist clean
 
 all: build
 
