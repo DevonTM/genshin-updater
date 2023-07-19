@@ -120,8 +120,7 @@ func main() {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
 	fmt.Print("\npress enter to exit...")
