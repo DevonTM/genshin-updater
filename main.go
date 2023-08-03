@@ -112,15 +112,16 @@ func main() {
 		}
 		break
 	}
+	hash = "md5=" + hash
+	url := path
 
 	fmt.Println("\nDownloading :", name)
-	command := fmt.Sprintf("aria2c --conf-path=aria2.conf --checksum=md5=%s -- %s", hash, path)
-	cmd := exec.Command("cmd", "/C", command)
+	cmd := exec.Command("./aria2c.exe", "--conf-path", "aria2.conf", "--checksum", hash, "--", url)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	fmt.Print("\npress enter to exit...")
