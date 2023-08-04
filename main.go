@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 )
 
@@ -119,6 +120,18 @@ func main() {
 	cmd := exec.Command("./aria2c.exe", "--conf-path", "aria2.conf", "--checksum", hash, "--", url)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	cancel := make(chan os.Signal, 1)
+	signal.Notify(cancel, os.Interrupt)
+	go func() {
+		for {
+			<-cancel
+			if err := cmd.Process.Signal(os.Interrupt); err == nil {
+				return
+			}
+		}
+	}()
+
 	err = cmd.Run()
 	if err != nil {
 		log.Print(err)
