@@ -11,6 +11,8 @@ import (
 	"strconv"
 )
 
+const VERSION = "v1.2.2"
+
 type GenshinData struct {
 	Data struct {
 		Game    *gameData `json:"game"`
@@ -41,7 +43,7 @@ type gameData struct {
 var URL = "https://hk4e-launcher-static.hoyoverse.com/hk4e_global/mdk/launcher/api/resource?channel_id=1&key=gcStgarh&launcher_id=10&sub_channel_id=0"
 
 func main() {
-	fmt.Printf("Genshin Impact Patch Downloader\n")
+	fmt.Printf("Genshin Impact Patch Downloader %s\n", VERSION)
 
 	client := &http.Client{Timeout: 10e9}
 	req, err := http.NewRequest("GET", URL, http.NoBody)
