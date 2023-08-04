@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-const VERSION = "v1.2.2"
+const VERSION = "v1.2.3"
 
 type GenshinData struct {
 	Data struct {
