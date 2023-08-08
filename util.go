@@ -60,7 +60,7 @@ func logError(err error) {
 }
 
 func clearScreen() {
-	cmd := exec.Command("cmd", "/C", "cls")
+	cmd := exec.Command("C:\\Windows\\System32\\cmd.exe", "/C", "cls")
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
