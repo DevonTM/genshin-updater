@@ -8,18 +8,17 @@ BINARY_NAME = genshin-updater.exe
 all: build
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v -trimpath -ldflags "-s -w" main.go
+	$(GOBUILD) -o $(BINARY_NAME)
 
 run: build
 	./$(BINARY_NAME)
 
-dist: build
+dist:
 	mkdir -p release/genshin-patch
-	mv $(BINARY_NAME) release/
+	$(GOBUILD) -o release/$(BINARY_NAME) -trimpath -ldflags "-s -w"
 	cp aria2.conf release/
 	cp LICENSE release/
 
 clean:
 	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
 	rm -rf release
