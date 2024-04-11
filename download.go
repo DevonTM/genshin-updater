@@ -17,7 +17,8 @@ func getFile(data *DownloadData) error {
 	clearScreen()
 	fmt.Println("Downloading :", data.Name)
 
-	cmd := exec.Command("./aria2c.exe", "--conf-path", "aria2.conf", "--checksum", data.Hash, "--", data.URL)
+	cmd := exec.Command(aria2cPath, "--conf-path", aria2confPath, "--checksum", data.Hash, "--", data.URL)
+	cmd.Dir = execDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

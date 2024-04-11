@@ -9,6 +9,12 @@ const VERSION = "v1.3.1"
 
 func main() {
 	fmt.Println("Genshin Impact Patch Downloader " + VERSION)
+
+	err := checkAria2()
+	if err != nil {
+		logError(err)
+	}
+
 	fmt.Print("Fetching data . . . ")
 	data, err := getData()
 	if err != nil {

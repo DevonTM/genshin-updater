@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 
 	"github.com/inancgumus/screen"
@@ -14,6 +17,57 @@ const (
 	MB = 1024 * KB
 	GB = 1024 * MB
 )
+
+var (
+	execDir       string
+	aria2cPath    string
+	aria2confPath string
+)
+
+func init() {
+	exec, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	execDir = filepath.Dir(exec)
+}
+
+func checkAria2() error {
+	aria2c := "aria2c"
+	aria2conf := "aria2.conf"
+
+	if runtime.GOOS == "windows" {
+		aria2c += ".exe"
+	}
+
+	aria2cPath = filepath.Join(execDir, aria2c)
+	aria2confPath = filepath.Join(execDir, aria2conf)
+
+	_, err := os.Stat(aria2cPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		aria2cPath = ""
+	}
+
+	if aria2cPath == "" {
+		aria2cPath, err = exec.LookPath("aria2c")
+		if err != nil {
+			return fmt.Errorf("%s not found", aria2c)
+		}
+	}
+
+	_, err = os.Stat(aria2confPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s not found", aria2conf)
+		}
+		return err
+	}
+
+	return nil
+}
 
 func getChoice() int {
 	choice := -1
