@@ -1,24 +1,31 @@
-GOCMD = go
-GOBUILD = $(GOCMD) build
-GOCLEAN = $(GOCMD) clean
-BINARY_NAME = genshin-updater.exe
+GO ?= go
+CP := cp
+RM := rm -rf
+BINARY_NAME := genshin-updater
+OUT_DIR := release
 
-.PHONY: all build run dist clean
+ifeq ($(OS),Windows_NT)
+	CP := xcopy /Q /Y
+	RM := cmd /C RD /Q /S
+endif
 
-all: build
+ifeq ($(shell $(GO) env GOOS),windows)
+	BINARY_NAME := $(BINARY_NAME).exe
+endif
+
+.PHONY: all build clean dist run
+
+all: dist
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME)
+	$(GO) build -v -trimpath -ldflags "-s -w" -o $(OUT_DIR)/$(BINARY_NAME)
 
 run: build
-	./$(BINARY_NAME)
+	$(OUT_DIR)/$(BINARY_NAME)
 
-dist:
-	mkdir -p release/genshin-patch
-	$(GOBUILD) -o release/$(BINARY_NAME) -trimpath -ldflags "-s -w"
-	cp aria2.conf release/
-	cp LICENSE release/
+dist: build
+	$(CP) aria2.conf $(OUT_DIR)
+	$(CP) LICENSE $(OUT_DIR)
 
 clean:
-	$(GOCLEAN)
-	rm -rf release
+	$(RM) $(OUT_DIR)

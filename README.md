@@ -20,7 +20,7 @@ Genshin Impact Patch Downloader is a Go application for efficiently downloading 
 1. Install Go (if not already installed) by following the official installation instructions: [https://golang.org/doc/install](https://golang.org/doc/install)
 2. Clone the repository: `git clone https://github.com/DevonTM/genshin-updater.git`
 3. Navigate to the project directory: `cd genshin-updater`
-4. Build the project: `make build` or `make dist`
+4. Build the project: `make`
 
 ## Usage
 
