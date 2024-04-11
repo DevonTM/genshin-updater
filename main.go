@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const VERSION = "v1.3.1"
+const VERSION = "v1.4.0"
 
 func main() {
 	fmt.Println("Genshin Impact Patch Downloader " + VERSION)
