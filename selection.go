@@ -18,6 +18,7 @@ func selectPatch(data *GenshinData) (dlData *DownloadData) {
 
 		switch choice {
 		case 0:
+			clearScreen()
 			os.Exit(0)
 		case 1:
 			dlData = selectVer(data.Data.Game)

@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
+
+	"github.com/inancgumus/screen"
 )
 
 const (
@@ -60,7 +61,6 @@ func logError(err error) {
 }
 
 func clearScreen() {
-	cmd := exec.Command("C:\\Windows\\System32\\cmd.exe", "/C", "cls")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	screen.Clear()
+	screen.MoveTopLeft()
 }
