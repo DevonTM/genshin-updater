@@ -22,12 +22,14 @@ func main() {
 	}
 	time.Sleep(2 * time.Second)
 
-	dlData := selectPatch(data)
-	err = getFile(dlData)
-	if err != nil {
-		logError(err)
-	}
+	for {
+		dlData := selectPatch(data)
+		err = getFile(dlData)
+		if err != nil {
+			logError(err)
+		}
 
-	fmt.Print("\nPress enter to exit . . . ")
-	fmt.Scanln()
+		fmt.Print("\nPress enter to continue . . . ")
+		fmt.Scanln()
+	}
 }
